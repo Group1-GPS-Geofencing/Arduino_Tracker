@@ -9,15 +9,17 @@
 #include <Firebase_ESP_Client.h>
 #include <addons/TokenHelper.h>
 
-// Define WiFi credentials
-#define WIFI_SSID "harrah"
-#define WIFI_PASSWORD "12345678"
+// // Define WiFi credentials
+// #define WIFI_SSID "harrah"
+// #define WIFI_PASSWORD "12345678"
 
-// Define Firebase API Key, Project ID, and user credentials
-#define API_KEY "AIzaSyBQqOF_-GgrY5l02TOj342VM21D17onyb4"
-#define FIREBASE_PROJECT_ID "geo-practice-7337d"
-#define USER_EMAIL "bsc-com-ne-04-19@unima.ac.mw"
-#define USER_PASSWORD "1234321"
+// // Define Firebase API Key, Project ID, and user credentials
+// #define API_KEY "AIzaSyBQqOF_-GgrY5l02TOj342VM21D17onyb4"
+// #define FIREBASE_PROJECT_ID "geo-practice-7337d"
+// #define USER_EMAIL "bsc-com-ne-04-19@unima.ac.mw"
+// #define USER_PASSWORD "1234321"
+//including congigurations file for wifi and firebase credentials
+#include "config.h"
 
 // Define Firebase Data object, Firebase authentication, and configuration
 FirebaseData fbdo;
