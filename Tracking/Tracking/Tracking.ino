@@ -80,16 +80,17 @@ void loop() {
   // Create a FirebaseJson object for storing data
   FirebaseJson content;
 
-  // Set dummy GPS coordinates for Chikanda, Zomba, Malawi
-  float dummyLatitude = -15.387723;
-  float dummyLongitude = 35.3181;
+//Generate random GPS coordinates(Zomba only)
+//Zomba latitude ranges from -15.45 to -15.35 & langitudes ranges from 35.25 to 35.35
+float randLatitude = -15.45 + ((float)random(0, 1000) / 1000.0) * (0.10);
+float randLongitude = 35.25 + ((float) random(0, 1000) / 1000.0 ) * (0.10);
 
   // Get the current timestamp
   String timestamp = getTime();
 
   // Add GPS data to FirebaseJson object
-  content.set("fields/Latitude/doubleValue", String(dummyLatitude, 6));
-  content.set("fields/Longitude/doubleValue", String(dummyLongitude, 6));
+  content.set("fields/Latitude/doubleValue", String(randLatitude, 6));
+  content.set("fields/Longitude/doubleValue", String(randLongitude, 6));
   content.set("fields/Timestamp/stringValue", timestamp);
 
   Serial.print("Update/Add GPS Data with Timestamp... ");
