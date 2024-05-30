@@ -1,16 +1,16 @@
 // Include required libraries
 #if defined(ESP32)
 #include <WiFi.h>
-#include <time.h>
 #elif defined(ESP8266)
 #include <ESP8266WiFi.h>
-#include <time.h>
 #endif
+#include <ArduinoJson.h>
+#include <HTTPClient.h>
 #include <Firebase_ESP_Client.h>
 #include <addons/TokenHelper.h>
 
 //including congigurations file for wifi and firebase credentials
-#include "config.h"
+#include "Conf.h"
 
 // Define Firebase Data object, Firebase authentication, and configuration
 FirebaseData fbdo;
@@ -18,10 +18,10 @@ FirebaseAuth auth;
 FirebaseConfig config;
 
 // NTP Server to request time
-const char* ntpServer = "pool.ntp.org";
+const char* timeAPiurl = "http://worldtimeapi.org/api/timezone/Africa/Blantyre";
 // Time offset in seconds (adjust as needed)
-const long  gmtOffset_sec = 7200;  // GMT+2 for Malawi
-const int   daylightOffset_sec = 0;
+//const long  gmtOffset_sec = 7200;  // GMT+2 for Malawi
+//const int   daylightOffset_sec = 0;
 
 void setup() {
   // Initialize serial communication for debugging
@@ -59,19 +59,29 @@ void setup() {
   Firebase.reconnectWiFi(true);
 
   // Initialize NTP
-  configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
+ // configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
 }
 
 String getTime() {
-  struct tm timeinfo;
-  if (!getLocalTime(&timeinfo)) {
-    Serial.println("Failed to obtain time");
-    return "";
+  HTTPClient http; //create an HTTP client object
+  http.begin(timeAPiurl); //Initialize the HTTP client with the world time API url
+  int httpRensponseCode = http.GET();
+  String currentTime = "";
+
+  if(httpRensponseCode == 200){
+    String payload = http.getString();
+    DynamicJsonDocument doc(1024);
+    deserializeJson(doc, payload); // create a JSON document to parse the response
+    currentTime = doc["datetime"].as<String>();//parse the Json payload
+    currentTime.remove(19);
   }
-  char timeString[30];
-  strftime(timeString, sizeof(timeString), "%Y-%m-%dT%H:%M:%SZ", &timeinfo);
-  return String(timeString);
-}
+  else{
+    Serial.print("Error on HTTP request");
+    Serial.println(httpRensponseCode);
+  }
+  http.end();
+  return currentTime;
+  }
 
 void loop() {
   // Define the path to the Firestore document
@@ -88,6 +98,7 @@ float randLongitude = 35.25 + ((float) random(0, 1000) / 1000.0 ) * (0.10);
   // Get the current timestamp
   String timestamp = getTime();
 
+  if(timestamp != ""){
   // Add GPS data to FirebaseJson object
   content.set("fields/Latitude/doubleValue", String(randLatitude, 6));
   content.set("fields/Longitude/doubleValue", String(randLongitude, 6));
@@ -101,7 +112,7 @@ float randLongitude = 35.25 + ((float) random(0, 1000) / 1000.0 ) * (0.10);
   } else {
     Serial.println(fbdo.errorReason());
   }
-
+  }
   // Delay before the next reading (60 seconds)
   delay(60000);
 }
