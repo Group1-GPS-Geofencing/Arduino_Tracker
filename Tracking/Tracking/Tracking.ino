@@ -17,7 +17,7 @@ FirebaseData fbdo;
 FirebaseAuth auth;
 FirebaseConfig config;
 
-// NTP Server to request time
+// Specifies the URL for the World Time API to get the current time for Blantyre, Malawi
 const char* timeAPiurl = "http://worldtimeapi.org/api/timezone/Africa/Blantyre";
 // Time offset in seconds (adjust as needed)
 //const long  gmtOffset_sec = 7200;  // GMT+2 for Malawi
@@ -85,34 +85,44 @@ String getTime() {
 
 void loop() {
   // Define the path to the Firestore document
-  String documentPath = "EspData/GPS";
+  String documentPath = "CurrentLocation/current_Location";
 
   // Create a FirebaseJson object for storing data
   FirebaseJson content;
+  FirebaseJson geoPoint;
+
 
 //Generate random GPS coordinates(Zomba only)
 //Zomba latitude ranges from -15.45 to -15.35 & langitudes ranges from 35.25 to 35.35
 float randLatitude = -15.45 + ((float)random(0, 1000) / 1000.0) * (0.10);
 float randLongitude = 35.25 + ((float) random(0, 1000) / 1000.0 ) * (0.10);
 
-  // Get the current timestamp
-  String timestamp = getTime();
+  // Get the current time
+  String time = getTime();
 
-  if(timestamp != ""){
-  // Add GPS data to FirebaseJson object
-  content.set("fields/Latitude/doubleValue", String(randLatitude, 6));
-  content.set("fields/Longitude/doubleValue", String(randLongitude, 6));
-  content.set("fields/Timestamp/stringValue", timestamp);
+  if(time != ""){
+  // // Add GPS data to FirebaseJson object
+  // content.set("fields/Latitude/doubleValue", String(randLatitude, 6));
+  // content.set("fields/Longitude/doubleValue", String(randLongitude, 6));
+  // content.set("fields/time/stringValue", time);
 
-  Serial.print("Update/Add GPS Data with Timestamp... ");
+  //create a Geopoint
+  geoPoint.set("geoPointValue/latitude", String(randLatitude, 6));
+  geoPoint.set("geoPointValue/longitude", String(randLongitude, 6));
+
+    // Add GeoPoint and time to the FirebaseJson object
+    content.set("fields/position", geoPoint);
+    content.set("fields/time/stringValue", time);
+
+  Serial.print("Update/Add GPS Data with time... ");
 
   // Use the patchDocument method to update the Firestore document
-  if (Firebase.Firestore.patchDocument(&fbdo, FIREBASE_PROJECT_ID, "", documentPath.c_str(), content.raw(), "Latitude,Longitude,Timestamp")) {
+  if (Firebase.Firestore.patchDocument(&fbdo, FIREBASE_PROJECT_ID, "", documentPath.c_str(), content.raw(), "position,time")) {
     Serial.printf("ok\n%s\n\n", fbdo.payload().c_str());
   } else {
     Serial.println(fbdo.errorReason());
   }
   }
-  // Delay before the next reading (60 seconds)
-  delay(60000);
+  // Delay before the next reading ( 2 minutes)
+  delay(120000);
 }
