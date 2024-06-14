@@ -9,7 +9,7 @@
 #include <Firebase_ESP_Client.h>
 #include <addons/TokenHelper.h>
 
-//including congigurations file for wifi and firebase credentials
+//including configurations file for wifi and firebase credentials
 #include "Conf.h"
 
 // Define Firebase Data object, Firebase authentication, and configuration
@@ -19,9 +19,6 @@ FirebaseConfig config;
 
 // Specifies the URL for the World Time API to get the current time for Blantyre, Malawi
 const char* timeAPiurl = "http://worldtimeapi.org/api/timezone/Africa/Blantyre";
-// Time offset in seconds (adjust as needed)
-//const long  gmtOffset_sec = 7200;  // GMT+2 for Malawi
-//const int   daylightOffset_sec = 0;
 
 void setup() {
   // Initialize serial communication for debugging
@@ -57,31 +54,27 @@ void setup() {
 
   // Reconnect to Wi-Fi if necessary
   Firebase.reconnectWiFi(true);
-
-  // Initialize NTP
- // configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
 }
 
 String getTime() {
   HTTPClient http; //create an HTTP client object
   http.begin(timeAPiurl); //Initialize the HTTP client with the world time API url
-  int httpRensponseCode = http.GET();
+  int httpResponseCode = http.GET();
   String currentTime = "";
 
-  if(httpRensponseCode == 200){
+  if (httpResponseCode == 200) {
     String payload = http.getString();
     DynamicJsonDocument doc(1024);
     deserializeJson(doc, payload); // create a JSON document to parse the response
-    currentTime = doc["datetime"].as<String>();//parse the Json payload
+    currentTime = doc["datetime"].as<String>(); //parse the Json payload
     currentTime.remove(19);
-  }
-  else{
+  } else {
     Serial.print("Error on HTTP request");
-    Serial.println(httpRensponseCode);
+    Serial.println(httpResponseCode);
   }
   http.end();
   return currentTime;
-  }
+}
 
 void loop() {
   // Define the path to the Firestore document
@@ -91,38 +84,32 @@ void loop() {
   FirebaseJson content;
   FirebaseJson geoPoint;
 
-
-//Generate random GPS coordinates(Zomba only)
-//Zomba latitude ranges from -15.45 to -15.35 & langitudes ranges from 35.25 to 35.35
-float randLatitude = -15.45 + ((float)random(0, 1000) / 1000.0) * (0.10);
-float randLongitude = 35.25 + ((float) random(0, 1000) / 1000.0 ) * (0.10);
+  // Generate random GPS coordinates (UNIMA only)
+  // UNIMA latitude ranges from -15.392 to -15.386 & longitudes ranges from 35.318 to 35.324
+  float randLatitude = -15.392 + ((float)random(0, 1000) / 1000.0) * (0.006);
+  float randLongitude = 35.318 + ((float)random(0, 1000) / 1000.0) * (0.006);
 
   // Get the current time
   String time = getTime();
 
-  if(time != ""){
-  // // Add GPS data to FirebaseJson object
-  // content.set("fields/Latitude/doubleValue", String(randLatitude, 6));
-  // content.set("fields/Longitude/doubleValue", String(randLongitude, 6));
-  // content.set("fields/time/stringValue", time);
-
-  //create a Geopoint
-  geoPoint.set("geoPointValue/latitude", String(randLatitude, 6));
-  geoPoint.set("geoPointValue/longitude", String(randLongitude, 6));
+  if (time != "") {
+    // Create a Geopoint
+    geoPoint.set("geoPointValue/latitude", String(randLatitude, 6));
+    geoPoint.set("geoPointValue/longitude", String(randLongitude, 6));
 
     // Add GeoPoint and time to the FirebaseJson object
     content.set("fields/position", geoPoint);
     content.set("fields/time/stringValue", time);
 
-  Serial.print("Update/Add GPS Data with time... ");
+    Serial.print("Update/Add GPS Data with time... ");
 
-  // Use the patchDocument method to update the Firestore document
-  if (Firebase.Firestore.patchDocument(&fbdo, FIREBASE_PROJECT_ID, "", documentPath.c_str(), content.raw(), "position,time")) {
-    Serial.printf("ok\n%s\n\n", fbdo.payload().c_str());
-  } else {
-    Serial.println(fbdo.errorReason());
+    // Use the patchDocument method to update the Firestore document
+    if (Firebase.Firestore.patchDocument(&fbdo, FIREBASE_PROJECT_ID, "", documentPath.c_str(), content.raw(), "position,time")) {
+      Serial.printf("ok\n%s\n\n", fbdo.payload().c_str());
+    } else {
+      Serial.println(fbdo.errorReason());
+    }
   }
-  }
-  // Delay before the next reading ( 2 minutes)
+  // Delay before the next reading (2 minutes)
   delay(120000);
 }
