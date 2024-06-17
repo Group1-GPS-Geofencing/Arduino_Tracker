@@ -23,17 +23,51 @@ FirebaseConfig config;
 const char* timeAPiurl = "http://worldtimeapi.org/api/timezone/Africa/Blantyre";
 
 // Create an instance of the TinyGPS++ object
+SoftwareSerial a9gSerial(16, 17);
 TinyGPSPlus gps;
 
 // Create an instance of the HardwareSerial object for GPS
-HardwareSerial gpsSerial(2);  // Use UART2 (GPIO 16, 17)
+//HardwareSerial gpsSerial(2);  
 
 void setup() {
   // Initialize serial communication for debugging
   Serial.begin(115200);
 
-  // Initialize GPS Serial
-  gpsSerial.begin(9600, SERIAL_8N1, 16, 17);  // TX, RX
+  while (!Serial){
+    ;
+  }
+  a9gSerial.begin(9600);
+  Serial.println("Initializing A9G module...");
+  delay(2000);
+
+  // Send command to A9G module to ensure it is in NMEA mode
+  a9gSerial.println("AT+GPS=1"); // Enable GPS
+  delay(1000); // Wait for the command to take effect
+  a9gSerial.println("AT+GPSRD=1"); // Start GPS NMEA data transmission
+
+  // Wait until we get a valid GPS location
+  bool gpsInitialized = false;
+  unsigned long start = millis();
+  while (!gpsInitialized && millis() - start < 60000) { // Wait for up to 60 seconds
+    while (a9gSerial.available() > 0) {
+      char c = a9gSerial.read();
+      gps.encode(c); // Encode the NMEA data with TinyGPS++
+      if (gps.location.isUpdated()) {
+        gpsInitialized = true;
+        break;
+      }
+    }
+  }
+
+  if (gpsInitialized) {
+    // Print the GPS coordinates to the serial monitor after initialization
+    double latitude = gps.location.lat();
+    double longitude = gps.location.lng();
+    Serial.print("Latitude: ");
+    Serial.print(latitude, 6); // 6 decimal places
+    Serial.print(" Longitude: ");
+    Serial.println(longitude, 6); // 6 decimal places
+
 
   // Connect to Wi-Fi
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
@@ -58,7 +92,7 @@ void setup() {
   auth.user.password = USER_PASSWORD;
 
   // Assign the callback function for the long-running token generation task
-  config.token_status_callback = tokenStatusCallback;  // see addons/TokenHelper.h
+  config.token_status_callback = tokenStatusCallback;
 
   // Begin Firebase with configuration and authentication
   Firebase.begin(&config, &auth);
