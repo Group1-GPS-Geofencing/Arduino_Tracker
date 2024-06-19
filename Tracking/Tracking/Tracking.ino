@@ -9,7 +9,7 @@
 #include <Firebase_ESP_Client.h>
 #include <addons/TokenHelper.h>
 
-//including configurations file for wifi and firebase credentials
+// Including configurations file for Wi-Fi and Firebase credentials
 #include "Conf.h"
 
 // Define Firebase Data object, Firebase authentication, and configuration
@@ -19,6 +19,12 @@ FirebaseConfig config;
 
 // Specifies the URL for the World Time API to get the current time for Blantyre, Malawi
 const char* timeAPiurl = "http://worldtimeapi.org/api/timezone/Africa/Blantyre";
+
+// Define the bounds for the specific coordinates
+const float COORD1_LAT_MIN = -15.389166;
+const float COORD1_LAT_MAX = -15.385113;
+const float COORD1_LON_MIN = 35.334857;
+const float COORD1_LON_MAX = 35.340760;
 
 void setup() {
   // Initialize serial communication for debugging
@@ -57,17 +63,17 @@ void setup() {
 }
 
 String getTime() {
-  HTTPClient http; //create an HTTP client object
-  http.begin(timeAPiurl); //Initialize the HTTP client with the world time API url
+  HTTPClient http; // Create an HTTP client object
+  http.begin(timeAPiurl); // Initialize the HTTP client with the world time API URL
   int httpResponseCode = http.GET();
   String currentTime = "";
 
   if (httpResponseCode == 200) {
     String payload = http.getString();
     DynamicJsonDocument doc(1024);
-    deserializeJson(doc, payload); // create a JSON document to parse the response
-    currentTime = doc["datetime"].as<String>(); //parse the Json payload
-    currentTime.remove(19);
+    deserializeJson(doc, payload); // Create a JSON document to parse the response
+    currentTime = doc["datetime"].as<String>(); // Parse the JSON payload
+    currentTime.remove(19); // Remove the fractional seconds
   } else {
     Serial.print("Error on HTTP request");
     Serial.println(httpResponseCode);
@@ -84,15 +90,14 @@ void loop() {
   FirebaseJson content;
   FirebaseJson geoPoint;
 
-  // Generate random GPS coordinates (UNIMA only)
-  // UNIMA latitude ranges from -15.392 to -15.386 & longitudes ranges from 35.318 to 35.324
-  float randLatitude = -15.392 + ((float)random(0, 1000) / 1000.0) * (0.006);
-  float randLongitude = 35.318 + ((float)random(0, 1000) / 1000.0) * (0.006);
+  // Generate random GPS coordinates within the specified bounds
+  float randLatitude = random(COORD1_LAT_MIN * 1000000, COORD1_LAT_MAX * 1000000) / 1000000.0;
+  float randLongitude = random(COORD1_LON_MIN * 1000000, COORD1_LON_MAX * 1000000) / 1000000.0;
 
   // Get the current time
   String time = getTime();
 
-  if (time != "") {
+  if (!time.isEmpty()) {
     // Create a Geopoint
     geoPoint.set("geoPointValue/latitude", String(randLatitude, 6));
     geoPoint.set("geoPointValue/longitude", String(randLongitude, 6));
@@ -110,6 +115,7 @@ void loop() {
       Serial.println(fbdo.errorReason());
     }
   }
+
   // Delay before the next reading (2 minutes)
   delay(120000);
 }
